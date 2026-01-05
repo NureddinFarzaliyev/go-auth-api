@@ -1,0 +1,11 @@
+package auth
+
+type User struct {
+	Email    string
+	Password string
+}
+
+type RegisterUser struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
