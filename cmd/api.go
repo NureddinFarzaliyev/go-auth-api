@@ -31,9 +31,7 @@ func (app *application) mount() http.Handler {
 		r.Route("/auth", func(r chi.Router) {
 			h := auth.NewAuthHandler(auth.NewAuthMemoryTaskRepository())
 			r.Post("/register", h.Register)
-			r.Post("/login", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("login"))
-			})
+			r.Post("/login", h.Login)
 			r.Get("/logout", func(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("logout"))
 			})

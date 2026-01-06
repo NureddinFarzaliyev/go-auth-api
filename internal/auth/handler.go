@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/NureddinFarzaliyev/go-auth-api/internal/httpx"
@@ -23,11 +22,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(&user); err != nil {
-		if err == io.EOF {
-			httpx.Error(w, "Request body is required", http.StatusBadRequest)
-		} else {
-			httpx.Error(w, err.Error(), http.StatusBadRequest)
-		}
+		httpx.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -35,10 +30,50 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		if err == ErrorAlreadyRegistered {
 			httpx.Error(w, ErrorAlreadyRegistered.Error(), http.StatusConflict)
 		} else {
-			httpx.Error(w, "Unexpected error happened.", http.StatusInternalServerError)
+			httpx.Error(w, ErrorInternal.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
 
 	httpx.JSON(w, http.StatusCreated, httpx.Envelope{})
+}
+
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var user UserLogin
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&user); err != nil {
+		httpx.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	token, csrf, expires, err := h.repo.Login(user)
+
+	if err != nil {
+		if err == ErrorUserNotFoundOrWrongCredentials {
+			httpx.Error(w, ErrorUserNotFoundOrWrongCredentials.Error(), http.StatusBadRequest)
+		} else {
+			httpx.Error(w, ErrorInternal.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    token,
+		Expires:  expires,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	data := httpx.Envelope{
+		"csrf":    csrf,
+		"expires": expires,
+	}
+
+	httpx.JSON(w, http.StatusOK, data)
 }

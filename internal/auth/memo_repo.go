@@ -1,8 +1,11 @@
 package auth
 
 import (
+	"fmt"
 	"sync"
+	"time"
 
+	"github.com/NureddinFarzaliyev/go-auth-api/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -46,4 +49,46 @@ func (r *MemoryTaskRepository) Register(user User) error {
 
 	r.memory = append(r.memory, newUser)
 	return nil
+}
+
+func (r *MemoryTaskRepository) Login(user UserLogin) (token string, csrf string, expires time.Time, err error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	existingUserIdx := -1
+
+	for i, v := range r.memory {
+		if user.Email == v.Email {
+			existingUserIdx = i
+			break
+		}
+	}
+
+	if existingUserIdx == -1 {
+		return "", "", time.Time{}, ErrorUserNotFoundOrWrongCredentials
+	}
+
+	correctPass := bcrypt.CompareHashAndPassword([]byte(r.memory[existingUserIdx].Password), []byte(user.Password))
+	if correctPass != nil {
+		return "", "", time.Time{}, ErrorUserNotFoundOrWrongCredentials
+	}
+
+	loginToken, err := utils.GenerateToken()
+	if err != nil {
+		return "", "", time.Time{}, ErrorInternal
+	}
+
+	loginExpires := time.Now().Add(24 * time.Hour)
+
+	r.memory[existingUserIdx].Meta.session_token = loginToken
+	r.memory[existingUserIdx].Meta.expires_at = loginExpires
+
+	csrfToken, err := utils.GenerateToken()
+	if err != nil {
+		return "", "", time.Time{}, ErrorInternal
+	}
+
+	r.memory[existingUserIdx].Meta.csrf_token = csrfToken
+
+	return loginToken, csrfToken, loginExpires, nil
 }
