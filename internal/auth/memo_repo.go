@@ -121,3 +121,28 @@ func (r *MemoryTaskRepository) Login(user UserLogin) (token string, csrf string,
 
 	return loginToken, csrfToken, loginExpires, nil
 }
+
+func (r *MemoryTaskRepository) Logout(email string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	userIdx := -1
+
+	for i, v := range r.memory {
+		if email == v.Email {
+			userIdx = i
+			break
+		}
+	}
+
+	if userIdx == -1 {
+		return httpx.ErrorInternal
+	}
+
+	user := &r.memory[userIdx]
+	user.Meta.csrf_token = ""
+	user.Meta.session_token = ""
+	user.Meta.expires_at = time.Now()
+
+	return nil
+}

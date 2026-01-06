@@ -30,17 +30,18 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Route("/v1", func(r chi.Router) {
-		AuthMemoRepo := auth.NewAuthMemoryTaskRepository()
+		authMemoRepo := auth.NewAuthMemoryTaskRepository()
+		authMw := middlewares.NewAuthMiddleware(authMemoRepo)
 		r.Route("/auth", func(r chi.Router) {
-			h := auth.NewAuthHandler(AuthMemoRepo)
+			h := auth.NewAuthHandler(authMemoRepo)
 			r.Post("/register", h.Register)
 			r.Post("/login", h.Login)
-			r.Get("/logout", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("logout"))
+			r.Group(func(r chi.Router) {
+				r.Use(authMw.Middleware)
+				r.Get("/logout", h.Logout)
 			})
 		})
 		r.Group(func(r chi.Router) {
-			authMw := middlewares.NewAuthMiddleware(AuthMemoRepo)
 			r.Use(authMw.Middleware)
 			r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
 				email := r.Context().Value(auth.UserEmailContext).(string)
@@ -48,7 +49,6 @@ func (app *application) mount() http.Handler {
 				httpx.JSON(w, http.StatusOK, httpx.Envelope{"message": msg})
 			})
 		})
-
 	})
 
 	return r

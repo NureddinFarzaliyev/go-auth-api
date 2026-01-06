@@ -77,3 +77,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	httpx.JSON(w, http.StatusOK, data)
 }
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	email := r.Context().Value(UserEmailContext).(string)
+	if email == "" {
+		httpx.Error(w, httpx.ErrorInternal.Error(), http.StatusInternalServerError)
+		return
+	}
+	err := h.repo.Logout(email)
+	if err != nil {
+		httpx.Error(w, httpx.ErrorInternal.Error(), http.StatusInternalServerError)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, httpx.Envelope{})
+}
