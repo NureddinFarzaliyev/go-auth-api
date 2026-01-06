@@ -20,7 +20,7 @@ func NewAuthMemoryTaskRepository() *MemoryTaskRepository {
 	return &MemoryTaskRepository{}
 }
 
-func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken string) error {
+func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -33,7 +33,7 @@ func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken strin
 	}
 
 	if userIdx == -1 {
-		return httpx.ErrorNotAuthorized
+		return "", httpx.ErrorNotAuthorized
 	}
 
 	now := time.Now()
@@ -41,10 +41,12 @@ func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken strin
 	isExpired := now.After(expires_at)
 
 	if isExpired {
-		return httpx.ErrorNotAuthorized
+		return "", httpx.ErrorNotAuthorized
 	}
 
-	return nil
+	email := r.memory[userIdx].Email
+
+	return email, nil
 }
 
 func (r *MemoryTaskRepository) Register(user User) error {

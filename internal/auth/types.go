@@ -22,3 +22,5 @@ type UserLogin struct {
 }
 
 var CookieSessionToken = "session_token"
+
+var UserEmailContext = "userEmail"

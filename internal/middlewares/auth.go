@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/NureddinFarzaliyev/go-auth-api/internal/auth"
@@ -20,11 +21,15 @@ func (m *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 		cookie, err := r.Cookie(auth.CookieSessionToken)
 		if err != nil {
 			httpx.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
 		}
 		csrf := r.Header.Get("X-CSRF-TOKEN")
-		uErr := m.repo.IsValidSession(cookie.Value, csrf)
+		email, uErr := m.repo.IsValidSession(cookie.Value, csrf)
 		if uErr != nil {
 			httpx.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
 		}
+		ctx := context.WithValue(r.Context(), auth.UserEmailContext, email)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

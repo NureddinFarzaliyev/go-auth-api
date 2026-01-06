@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/NureddinFarzaliyev/go-auth-api/internal/auth"
+	"github.com/NureddinFarzaliyev/go-auth-api/internal/httpx"
 	"github.com/NureddinFarzaliyev/go-auth-api/internal/middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -42,7 +43,9 @@ func (app *application) mount() http.Handler {
 			authMw := middlewares.NewAuthMiddleware(AuthMemoRepo)
 			r.Use(authMw.Middleware)
 			r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("protected"))
+				email := r.Context().Value(auth.UserEmailContext).(string)
+				msg := fmt.Sprintf("Welcome, %s!", email)
+				httpx.JSON(w, http.StatusOK, httpx.Envelope{"message": msg})
 			})
 		})
 
