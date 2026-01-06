@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NureddinFarzaliyev/go-auth-api/internal/httpx"
 	"github.com/NureddinFarzaliyev/go-auth-api/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -32,7 +33,7 @@ func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken strin
 	}
 
 	if userIdx == -1 {
-		return ErrorNotAuthorized
+		return httpx.ErrorNotAuthorized
 	}
 
 	now := time.Now()
@@ -40,7 +41,7 @@ func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken strin
 	isExpired := now.After(expires_at)
 
 	if isExpired {
-		return ErrorNotAuthorized
+		return httpx.ErrorNotAuthorized
 	}
 
 	return nil
@@ -60,12 +61,12 @@ func (r *MemoryTaskRepository) Register(user User) error {
 	}
 
 	if exists {
-		return ErrorAlreadyRegistered
+		return httpx.ErrorAlreadyRegistered
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return ErrorInternal
+		return httpx.ErrorInternal
 	}
 
 	newUser := User{
@@ -91,17 +92,17 @@ func (r *MemoryTaskRepository) Login(user UserLogin) (token string, csrf string,
 	}
 
 	if existingUserIdx == -1 {
-		return "", "", time.Time{}, ErrorUserNotFoundOrWrongCredentials
+		return "", "", time.Time{}, httpx.ErrorUserNotFoundOrWrongCredentials
 	}
 
 	correctPass := bcrypt.CompareHashAndPassword([]byte(r.memory[existingUserIdx].Password), []byte(user.Password))
 	if correctPass != nil {
-		return "", "", time.Time{}, ErrorUserNotFoundOrWrongCredentials
+		return "", "", time.Time{}, httpx.ErrorUserNotFoundOrWrongCredentials
 	}
 
 	loginToken, err := utils.GenerateToken()
 	if err != nil {
-		return "", "", time.Time{}, ErrorInternal
+		return "", "", time.Time{}, httpx.ErrorInternal
 	}
 
 	loginExpires := time.Now().Add(24 * time.Hour)
@@ -111,7 +112,7 @@ func (r *MemoryTaskRepository) Login(user UserLogin) (token string, csrf string,
 
 	csrfToken, err := utils.GenerateToken()
 	if err != nil {
-		return "", "", time.Time{}, ErrorInternal
+		return "", "", time.Time{}, httpx.ErrorInternal
 	}
 
 	r.memory[existingUserIdx].Meta.csrf_token = csrfToken

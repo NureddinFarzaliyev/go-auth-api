@@ -27,10 +27,10 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repo.Register(user); err != nil {
-		if err == ErrorAlreadyRegistered {
-			httpx.Error(w, ErrorAlreadyRegistered.Error(), http.StatusConflict)
+		if err == httpx.ErrorAlreadyRegistered {
+			httpx.Error(w, httpx.ErrorAlreadyRegistered.Error(), http.StatusConflict)
 		} else {
-			httpx.Error(w, ErrorInternal.Error(), http.StatusInternalServerError)
+			httpx.Error(w, httpx.ErrorInternal.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -52,10 +52,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	token, csrf, expires, err := h.repo.Login(user)
 
 	if err != nil {
-		if err == ErrorUserNotFoundOrWrongCredentials {
-			httpx.Error(w, ErrorUserNotFoundOrWrongCredentials.Error(), http.StatusBadRequest)
+		if err == httpx.ErrorUserNotFoundOrWrongCredentials {
+			httpx.Error(w, httpx.ErrorUserNotFoundOrWrongCredentials.Error(), http.StatusBadRequest)
 		} else {
-			httpx.Error(w, ErrorInternal.Error(), http.StatusInternalServerError)
+			httpx.Error(w, httpx.ErrorInternal.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
