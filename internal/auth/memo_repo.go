@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -18,6 +17,33 @@ var _ AuthRepository = &MemoryTaskRepository{}
 
 func NewAuthMemoryTaskRepository() *MemoryTaskRepository {
 	return &MemoryTaskRepository{}
+}
+
+func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	userIdx := -1
+	for i, v := range r.memory {
+		if v.Meta.session_token == loginToken && v.Meta.csrf_token == csrfToken {
+			userIdx = i
+			break
+		}
+	}
+
+	if userIdx == -1 {
+		return ErrorNotAuthorized
+	}
+
+	now := time.Now()
+	expires_at := r.memory[userIdx].Meta.expires_at
+	isExpired := now.After(expires_at)
+
+	if isExpired {
+		return ErrorNotAuthorized
+	}
+
+	return nil
 }
 
 func (r *MemoryTaskRepository) Register(user User) error {

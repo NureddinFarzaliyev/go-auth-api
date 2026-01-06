@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/NureddinFarzaliyev/go-auth-api/internal/auth"
+	"github.com/NureddinFarzaliyev/go-auth-api/internal/middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -28,17 +29,23 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Route("/v1", func(r chi.Router) {
+		AuthMemoRepo := auth.NewAuthMemoryTaskRepository()
 		r.Route("/auth", func(r chi.Router) {
-			h := auth.NewAuthHandler(auth.NewAuthMemoryTaskRepository())
+			h := auth.NewAuthHandler(AuthMemoRepo)
 			r.Post("/register", h.Register)
 			r.Post("/login", h.Login)
 			r.Get("/logout", func(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("logout"))
 			})
 		})
-		r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("protected"))
+		r.Group(func(r chi.Router) {
+			authMw := middlewares.NewAuthMiddleware(AuthMemoRepo)
+			r.Use(authMw.Middleware)
+			r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte("protected"))
+			})
 		})
+
 	})
 
 	return r

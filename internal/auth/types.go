@@ -20,3 +20,5 @@ type UserLogin struct {
 	Email    string
 	Password string
 }
+
+var CookieSessionToken = "session_token"

@@ -61,7 +61,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
+		Name:     CookieSessionToken,
 		Value:    token,
 		Expires:  expires,
 		Path:     "/",
