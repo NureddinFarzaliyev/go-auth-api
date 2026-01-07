@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -9,24 +10,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type MemoryTaskRepository struct {
+type MemoryAuthRepository struct {
 	memory []User
 	mu     sync.Mutex
 }
 
-var _ AuthRepository = &MemoryTaskRepository{}
+var _ AuthRepository = &MemoryAuthRepository{}
 
-func NewAuthMemoryTaskRepository() *MemoryTaskRepository {
-	return &MemoryTaskRepository{}
+func NewMemoryAuthRepository() *MemoryAuthRepository {
+	return &MemoryAuthRepository{}
 }
 
-func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken string) (string, error) {
+func (r *MemoryAuthRepository) IsValidSession(ctx context.Context, loginToken string, csrfToken string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	userIdx := -1
 	for i, v := range r.memory {
-		if v.Meta.session_token == loginToken && v.Meta.csrf_token == csrfToken {
+		if v.Meta.SessionToken == loginToken && v.Meta.CsrfToken == csrfToken {
 			userIdx = i
 			break
 		}
@@ -37,7 +38,7 @@ func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken strin
 	}
 
 	now := time.Now()
-	expires_at := r.memory[userIdx].Meta.expires_at
+	expires_at := r.memory[userIdx].Meta.ExpiresAt
 	isExpired := now.After(expires_at)
 
 	if isExpired {
@@ -49,7 +50,7 @@ func (r *MemoryTaskRepository) IsValidSession(loginToken string, csrfToken strin
 	return email, nil
 }
 
-func (r *MemoryTaskRepository) Register(user User) error {
+func (r *MemoryAuthRepository) Register(ctx context.Context, user User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -80,7 +81,7 @@ func (r *MemoryTaskRepository) Register(user User) error {
 	return nil
 }
 
-func (r *MemoryTaskRepository) Login(user UserLogin) (token string, csrf string, expires time.Time, err error) {
+func (r *MemoryAuthRepository) Login(ctx context.Context, user UserLogin) (token string, csrf string, expires time.Time, err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -109,20 +110,20 @@ func (r *MemoryTaskRepository) Login(user UserLogin) (token string, csrf string,
 
 	loginExpires := time.Now().Add(24 * time.Hour)
 
-	r.memory[existingUserIdx].Meta.session_token = loginToken
-	r.memory[existingUserIdx].Meta.expires_at = loginExpires
+	r.memory[existingUserIdx].Meta.SessionToken = loginToken
+	r.memory[existingUserIdx].Meta.ExpiresAt = loginExpires
 
 	csrfToken, err := utils.GenerateToken()
 	if err != nil {
 		return "", "", time.Time{}, httpx.ErrorInternal
 	}
 
-	r.memory[existingUserIdx].Meta.csrf_token = csrfToken
+	r.memory[existingUserIdx].Meta.CsrfToken = csrfToken
 
 	return loginToken, csrfToken, loginExpires, nil
 }
 
-func (r *MemoryTaskRepository) Logout(email string) error {
+func (r *MemoryAuthRepository) Logout(ctx context.Context, email string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -140,9 +141,9 @@ func (r *MemoryTaskRepository) Logout(email string) error {
 	}
 
 	user := &r.memory[userIdx]
-	user.Meta.csrf_token = ""
-	user.Meta.session_token = ""
-	user.Meta.expires_at = time.Now()
+	user.Meta.CsrfToken = ""
+	user.Meta.SessionToken = ""
+	user.Meta.ExpiresAt = time.Now()
 
 	return nil
 }

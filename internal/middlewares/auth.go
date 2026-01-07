@@ -24,7 +24,7 @@ func (m *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		csrf := r.Header.Get("X-CSRF-TOKEN")
-		email, uErr := m.repo.IsValidSession(cookie.Value, csrf)
+		email, uErr := m.repo.IsValidSession(r.Context(), cookie.Value, csrf)
 		if uErr != nil {
 			httpx.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return

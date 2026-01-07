@@ -26,7 +26,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.Register(user); err != nil {
+	if err := h.repo.Register(r.Context(), user); err != nil {
 		if err == httpx.ErrorAlreadyRegistered {
 			httpx.Error(w, httpx.ErrorAlreadyRegistered.Error(), http.StatusConflict)
 		} else {
@@ -49,7 +49,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, csrf, expires, err := h.repo.Login(user)
+	token, csrf, expires, err := h.repo.Login(r.Context(), user)
 
 	if err != nil {
 		if err == httpx.ErrorUserNotFoundOrWrongCredentials {
@@ -84,7 +84,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, httpx.ErrorInternal.Error(), http.StatusInternalServerError)
 		return
 	}
-	err := h.repo.Logout(email)
+	err := h.repo.Logout(r.Context(), email)
 	if err != nil {
 		httpx.Error(w, httpx.ErrorInternal.Error(), http.StatusInternalServerError)
 		return
